@@ -45,12 +45,33 @@ export class JwtTokenService implements ITokenService {
       throw new AppError({ code: 'auth.invalidToken' });
     }
 
-    const payload = JSON.parse(Buffer.from(encodedBody, 'base64url').toString()) as ITokenPayload;
-    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    // Never trust a segment that fails to decode: a malformed token must be a
+    // 401, not an unhandled SyntaxError turned into a 500.
+    const header = this._decode(encodedHeader);
+    const payload = this._decode(encodedBody) as ITokenPayload | null;
+
+    if (!header || header.alg !== 'HS256') {
+      throw new AppError({ code: 'auth.invalidToken' });
+    }
+
+    if (!payload || typeof payload.sub !== 'string' || payload.sub.length === 0) {
+      throw new AppError({ code: 'auth.invalidToken' });
+    }
+
+    if (typeof payload.exp === 'number' && payload.exp < Math.floor(Date.now() / 1000)) {
       throw new AppError({ code: 'auth.expired' });
     }
 
     return payload;
+  }
+
+  private _decode(segment: string): Record<string, unknown> | null {
+    try {
+      const decoded = JSON.parse(Buffer.from(segment, 'base64url').toString());
+      return decoded && typeof decoded === 'object' ? (decoded as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
   }
 
   private _sign(data: string): string {
