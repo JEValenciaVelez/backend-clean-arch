@@ -7,6 +7,10 @@ export default {
     en: 'Succesful',
     es: 'Exitoso',
   },
+  'server.tooManyRequests': {
+    en: 'Too many requests, please try again later',
+    es: 'Demasiadas solicitudes, inténtalo de nuevo más tarde',
+  },
 
   'invalid.action': {
     en: 'Invalid action',
